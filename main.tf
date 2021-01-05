@@ -15,6 +15,8 @@ module "cxflow" {
 
   name = var.name
   environment = var.environment
-  squad = var.squad
+  dns_zone = var.dns_zone
+  domain = var.domain
   tags = var.tags
+  region = var.region
 }

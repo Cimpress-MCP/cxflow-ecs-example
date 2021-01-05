@@ -1,7 +1,7 @@
 region = "us-east-1"
-name = "cxflow"
-squad = "CimSec"
 environment = "development"
+dns_zone = "awesome.example.com"
+domain = "cxflow.awesome.example.com"
 
 tags = {
   "Author": "Your Name",

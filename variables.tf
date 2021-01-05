@@ -3,15 +3,14 @@ variable "region" {
   description = "The AWS region to deploy to"
 }
 
-variable "name" {
+variable "dns_zone" {
   type = string
-  description = "A name to apply to all resources"
+  description = "The name of the Route 53 DNS zone to use for the domain name"
 }
 
-variable "squad" {
+variable "domain" {
   type = string
-  default = ""
-  description = "Squad, which could be your squad name or abbreviation, e.g. 'krypton' or 'kyp'"
+  description = "The domain to host the cluster on"
 }
 
 variable "environment" {
