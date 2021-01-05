@@ -4,7 +4,7 @@ This is an example of how to use the cxflow-ecs repository as a module to deploy
 
 ## Overview
 
-In order to deploy a fully functional Terraform cluster you need the following:
+In order to deploy a fully functional CxFlow cluster you need the following:
 
  1. A Route53 hosted zone in AWS
  2. An AKeyless AWS dynamic secret provider that will give Gitlab the necessary permissions for pushing images/secrets to SSM parameter store
@@ -18,11 +18,11 @@ In order to deploy a fully functional Terraform cluster you need the following:
 
 In terms of actually building this from scratch I suggest the following order of operations:
 
- 1. Create the necessary secrets and store them in AKeyless
- 2. Configure your AWS dynamic secret producer in AKeyless
- 3. Configure Gitlab/JWT auth in AKeyless
- 4. Deploy the cluster infrastructure with a clone of this repository
- 5. Create the CxFlow container with the [container repository](https://github.com/Cimpress-MCP/cxflow-container).
+ 1. [Create the necessary secrets and store them in AKeyless](#1-create-the-necessary-secrets-and-store-them-in-akeyless)
+ 2. [Configure your AWS dynamic secret producer in AKeyless](#2-configure-your-aws-dynamic-secret-provider-in-akeyless)
+ 3. [Configure Gitlab/JWT auth in AKeyless](#3-configure-gitlabjwt-auth-in-akeyless)
+ 4. [Deploy the cluster infrastructure with a clone of this repository](#4-deploy-the-cluster-via-terraform)
+ 5. [Create the CxFlow container](#5-create-the-cxflow-container)
 
 Items #4 and #5 are mutually dependent - the cluster cannot fully deploy without the container being built, but the terraform repo also builds the repository and SSM parameters where the container repository will push artifacts.  This could be untangled by introducing a third repository or some manual infrastructure provisioning, but that isn't really necessary.  If you deploy the cluster via Terraform first the ECS cluster won't be able to launch any tasks, but as soon as the container is pushed up to the repository it will finish deploying automatically.  Therefore, the above order works fine in practice.
 
@@ -34,8 +34,9 @@ The repository that builds the container expects to find 5 static secrets in AKe
 
 **Create a Checkmarx user** with the `SAST Reviewer role` **VERIFY CHECKMARX PERMISSIONS**.  CxFlow will use this user to send scan requests to Checkmarx and fetch the summary back out afteward.  The username and password for this user go into AKeyless under a path like:
 
- `/cxflow/{environment}/checkmarx/username`
- `/cxflow/{environment}/checkmarx/password`
+`/cxflow/{environment}/checkmarx/username`
+
+`/cxflow/{environment}/checkmarx/password`
 
 **Create a Gitlab User**.  CxFlow will use this user to post a comment on the merge requests when it initializes a scan as well as to post the scan summary as a comment when the scan finishes.  The user itself needs just minimum permissions, but you need to create a token for the user with the following scopes: `["api", "read_user", "write_repository ", "read_registry"]`.  The token for this user goes in AKeyless under a path like:
 
