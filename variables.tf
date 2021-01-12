@@ -13,14 +13,20 @@ variable "domain" {
   description = "The domain to host the cluster on"
 }
 
-variable "environment" {
-  type = string
-  default = "development"
-  description = "Environment, e.g. 'prod', 'staging', 'dev', 'pre-prod', 'UAT'"
+variable "environments" {
+  type = map
+  default = {"production": "stable"}
+  description = "Environments to build services for.  Should be a map with the environment name as the key and the container tag reference as the value"
 }
 
 variable "tags" {
   type = map
   default = {}
   description = "Additional tags to apply to all resources"
+}
+
+variable "flow_log_bucket" {
+  type        = string
+  default     = ""
+  description = "An S3 bucket to send VPC flow logs to"
 }

@@ -7,14 +7,15 @@ This is an example of how to use the cxflow-ecs repository as a module to deploy
 In order to deploy a fully functional CxFlow cluster you need the following:
 
  1. A Route53 hosted zone in AWS
- 2. An AKeyless AWS dynamic secret provider that will give Gitlab the necessary permissions for pushing images/secrets to SSM parameter store
- 3. A Checkmarx server
- 4. A Checkmarx user for CxFlow to login as
- 5. A Gitlab token for CxFlow to use to post comments on Merge Requests
- 6. A Gitlab web-hook token
- 7. The above secrets stored as static secrets in AKeyless
- 8. The [container repository](https://github.com/Cimpress-MCP/cxflow-container) deployed in Gitlab, which is responsible for building the CxFlow container and populating some SSM parameters
- 9. A clone of this repository, which uses the [cxflow-ecs cluster repository](https://github.com/Cimpress-MCP/cxflow-container) as a Terraform module to create the cluster infrastructure
+ 2. An S3 bucket for your VPC flow logs
+ 3. An AKeyless AWS dynamic secret provider that will give Gitlab the necessary permissions for pushing images/secrets to SSM parameter store
+ 4. A Checkmarx server
+ 5. A Checkmarx user for CxFlow to login as
+ 6. A Gitlab token for CxFlow to use to post comments on Merge Requests
+ 7. A Gitlab web-hook token
+ 8. The above secrets stored as static secrets in AKeyless
+ 9. The [container repository](https://github.com/Cimpress-MCP/cxflow-container) deployed in Gitlab, which is responsible for building the CxFlow container and populating some SSM parameters
+ 10. A clone of this repository, which uses the [cxflow-ecs cluster repository](https://github.com/Cimpress-MCP/cxflow-container) as a Terraform module to create the cluster infrastructure
 
 In terms of actually building this from scratch I suggest the following order of operations:
 
@@ -80,7 +81,7 @@ The [container repository](https://github.com/Cimpress-MCP/cxflow-container) wil
         "ecr:UploadLayerPart",
         "ecr:CompleteLayerUpload"
       ],
-      "Resource": "arn:aws:ecr:us-east-1:[ACCOUNT_ID]:repository/cxflow-*"
+      "Resource": "arn:aws:ecr:us-east-1:[ACCOUNT_ID]:repository/cxflow"
     },
     {
       "Sid": "AllowECRCredentials",
@@ -122,8 +123,9 @@ At this point in time you are readying to deploy the CxFlow cluster via Terrafor
  3. Your desired AWS region for the cluster.
  4. The domain for the cluster.  It must be a sub-domain of your Route53 hosted zone.  An ACM will be registered for it and an A record will be created to point this domain to the load balancer for the cluster.  This is where you will point your Github webhook.
  5. Any desired tags.  They will be attached to all applicable AWS resources.
- 6. Next you must update the [`main.tf`](main.tf) file to set proper S3 backend/dynamodb settings for your backend (or remove that section if you want to keep your Terraform state locally)
- 4. Run terraform!
+ 6. The name of the S3 bucket to use for VPC flow logs
+ 7. Next you must update the [`main.tf`](main.tf) file to set proper S3 backend/dynamodb settings for your backend (or remove that section if you want to keep your Terraform state locally)
+ 8. Run terraform!
 
 Running terraform is as simple as executing these commands from the root directory of this repository:
 
@@ -146,9 +148,22 @@ Last but not least, you must use the [container repository](https://github.com/C
 | Variable Name      | Value                                                                                                                             |
 |--------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | AWS_DEFAULT_REGION | The AWS region for your cluster                                                                                                   |
-| CX_FLOW_SERVER     | The domain for your CxFlow cluster                                                                                                |
+| CX_FLOW_SERVER     | The url to the CxFlow service                                                                                                     |
 | CX_FLOW_VERSION    | The version of CxFlow to use (currently tested with `1.6.15`).  It is used to build the CxFlow download URL                       |
-| REGISTRY           | The ECR registry to push to.  Built by Terraform.  Should be something like `[AWS_ACCOUNT_ID].dkr.ecr.[AWS_REGION].amazonaws.com` |
+
+Note that the URL to your new CxFlow service is a combination of the domain and the environment you used when deploying the cluster via Terraform (in Step #4 above).  For instance, imagine you used the following settings in your `terraform.tfvars` file:
+
+```
+domain = cxflow.example.com
+environments = {
+  "production": "stable",
+  "development": "latest"
+}
+```
+
+Then the URL for your production cluster would be `https://cxflow.example.com/production` and for development you would have `https://cxflow.example.com/development`.
+
+Also note that some variables are set in the Gitlab pipeline file itself.  These are variables that change from environment to environment, and so are not global to the entire pipeline.  For instance your development cluster may look for an image in ECR with the `latest` tag while the production cluster may look for an image with the `stable` tag.  Therefore, you will want the pipeline to build an image and push it up with the `stable` tag when running on the `master` branch, but it would use the `latest` tag when running on the `development` branch.
 
 After you set your pipeline variables and push up your new repository to Gitlab, the pipeline will run, your container should be created, secrets will be copied from AKeyless and pushed to SSM Parameter store, and your CxFlow tasks should launch in the ECS service, starting the cluster.
 
@@ -157,5 +172,4 @@ After you set your pipeline variables and push up your new repository to Gitlab,
 Pushing out new versions of CxFlow looks like this:
 
  1. Update the `$CX_FLOW_VERSION` variable in the Gitlab Pipeline for the container repository
- 2. Re-run the pipeline for the container repository, which will push up a new `latest` container to ECR
- 3. Run `terraform apply` in this repository.  That will push a new task definition up to the ECS cluster which will then deploy new tasks and drain the old ones
+ 2. Re-run the pipeline for the container repository, which will push up a new container to ECR and trigger a service update in ECS

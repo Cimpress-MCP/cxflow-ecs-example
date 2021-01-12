@@ -19,4 +19,5 @@ module "cxflow" {
   domain = var.domain
   tags = var.tags
   region = var.region
+  flow_log_bucket = var.flow_log_bucket
 }
