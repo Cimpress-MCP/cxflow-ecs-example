@@ -70,7 +70,7 @@ The [container repository](https://github.com/Cimpress-MCP/cxflow-container) wil
   "Version": "2008-10-17",
   "Statement": [
     {
-      "Sid": "AllowPushPull",
+      "Sid": "ECRActivity",
       "Effect": "Allow",
       "Action": [
         "ecr:GetDownloadUrlForLayer",
@@ -79,7 +79,8 @@ The [container repository](https://github.com/Cimpress-MCP/cxflow-container) wil
         "ecr:PutImage",
         "ecr:InitiateLayerUpload",
         "ecr:UploadLayerPart",
-        "ecr:CompleteLayerUpload"
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImageTagMutability"
       ],
       "Resource": "arn:aws:ecr:us-east-1:[ACCOUNT_ID]:repository/cxflow"
     },
@@ -95,11 +96,21 @@ The [container repository](https://github.com/Cimpress-MCP/cxflow-container) wil
       "Action": [
         "ssm:PutParameter"
       ],
-      "Resource": "arn:aws:ssm:us-east-1:[ACCOUNT_ID]:parameter/cxflow/*"
+      "Resource": "arn:aws:ssm:us-east-1:[ACCOUNT_ID]:parameter/cxflow*"
+    },
+    {
+      "Sid": "DeployECSService",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:UpdateService"
+      ],
+      "Resource": "arn:aws:ecs:us-east-1:[ACCOUNT_ID]:service/cxflow/cxflow-*"
     }
   ]
 }
 ```
+
+Note that this policy assumes that you build the infrastructure with a name of `cxflow`, which is the default in the Terraform repository.
 
 The AKeyless producer is named `/cxflow/${environment}/deploy_from_gitlab` in the container repository, but of course you can adjust that according to your needs.
 
